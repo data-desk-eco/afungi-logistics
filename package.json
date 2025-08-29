@@ -6,8 +6,9 @@
   "dependencies": {
     "@observablehq/notebook-kit": "^1.0.1"
   },
-  "scripts": {
-    "docs:preview": "notebooks preview --root docs --template template.html",
-    "docs:build": "notebooks build --root docs --template template.html -- docs/*.html"
-  }
+   "scripts": {
+     "docs:preview": "notebooks preview --root docs --template template.html",
+     "docs:build": "npm run fetch-data && notebooks build --root docs --template template.html -- docs/*.html",
+     "fetch-data": "./scripts/fetch-flight-data.sh"
+   }
 }
