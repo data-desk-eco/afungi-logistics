@@ -1,16 +1,50 @@
 <!doctype html>
 <notebook theme="near-midnight">
-  <title>Test notebook</title>
-  <script id="1" type="text/markdown">
-    # Test notebook
+  <title>Mozambique LNG logistics</title>
+  <script id="header" type="text/markdown">
+    # Mozambique LNG logistics
 
-    *25 August 2025*
+    *29 August 2025*
   </script>
-  <script id="4" type="text/markdown" pinned="">
-    Hey, this is a test of Observable Notebooks!
+  <script id="intro" type="text/markdown">
+    The Mozambique LNG project has been suspended under *force majeure* since 2021, but recent activity at the [project site](https://www.openstreetmap.org/#map=13/-10.81670/40.53474) in Afungi, Cabo Delgado suggests that full-scale work is about to restart.
   </script>
-  <script id="3" type="module">
-    // Should be able to remove this in future versions of Notebook Kit
-    const db = DuckDBClient.of();
+  <script id="ads-b" type="text/markdown">
+    ## Passenger flights
+
+    <figure>
+      <img src="assets/pemba-afungi-2025-05-01.png" />
+      <figcaption>Passenger jet V5-WEN flies from Pemba to Afungi on 1 May 2025. Source: <a href="https://globe.adsbexchange.com/?icao=20104f&lat=-11.837&lon=40.091&zoom=8.4&showTrace=2025-05-01&leg=2&trackLabels">ADS-B Exchange</a>.</figcaption>
+    </figure>
+
+    On 7 May 2025, an Embraer ERJ 145 passenger jet with the registration V5-WEN flew from the Mozambican capital, Maputo, to the port of Pemba. Less than an hour later, the jet — which carries [about 50 people](https://en.wikipedia.org/wiki/Embraer_ERJ_family) at a time — [took off](https://globe.adsbexchange.com/?icao=20104f&lat=-11.128&lon=40.485&zoom=7.4&showTrace=2025-05-01&leg=2&trackLabels) and headed north towards the Afungi airstrip.
+
+    While the [available location data](https://globe.adsbexchange.com/?icao=20104f&lat=-11.533&lon=40.397&zoom=9.8&showTrace=2025-05-01&leg=2&trackLabels) doesn't show the plane landing, its course, altitude and subsequent movements make clear that it landed at Afungi. The lack of data at the project site may be due to limited coverage of remote areas by the [ADS-B Exchange](https://globe.adsbexchange.com/) project, or to deliberate disabling of the plane's ADS-B transponder.
+    
+    Since 1 May, the same aircraft appears to have made dozens of flights between Maputo, Pemba and Afungi, most recently on [29 August](https://globe.adsbexchange.com/?icao=20104f&lat=-11.945&lon=40.210&zoom=8.6&showTrace=2025-08-29&leg=2&trackLabels). V5-WEN is owned by Fly Namibia and ordinarily operated by Westair Aviation, but was [leased to a different company](https://www.planespotters.net/airframe/embraer-erj-145-v5-wen-everett-aviation/3xwkl8), Everett Aviation, in  April 2025, suggesting that it may have been chartered specifically for Mozambique LNG project logistics.
+
+According to Everett's [website](https://www.everettaviation.com/), the company provides "safe and solution oriented fixed & rotary wing aviation services, serving international clients from the energy sector and other government & commercial organizations with specialist aviation needs."
+  </script>
+  <script id="satellite-imagery" type="text/markdown">
+    ## Construction work
+
+    <figure>
+      <video autoplay loop>
+        <source src="assets/afungi-construction-2025-04-27-2025-08-24.mov">
+      </video>
+      <figcaption>A comparison of Planet SkySat satellite imagery from 27 April 2025 and 24 August 2025, showing significant construction work at the Mozambique LNG project site.
+    </figure>
+
+    Major construction work now appears to be underway at the project site. Comparing recent satellite imagery to comparable imagery from April reveals a [specific area](https://earth.google.com/web/@-10.81175746,40.54830903,8.54686032a,1836.63914305d,30.00017325y,0.00032876h,0t,0r/data=CgRCAggBOgMKATBCAggASg0I____________ARAA) that has seen the most significant work, including construction of buildings.
+  </script>
+  <script id="ais" type="text/markdown">
+    ## Vessel activity
+
+    <figure style="max-width:100%">
+      <img src="assets/gfw-map.png" />
+      <figcaption>Uptick in vessel activity at the Mozambique LNG project site in August 2025. Source: <a href="https://globalfishingwatch.org/map/report/palma_bay_vessel_activity-user-public?longitude=40.5784225&latitude=-10.75874886&zoom=11.86219571&dvIn[0][id]=basemap&dvIn[0][cfg][basemap]=satellite&dvIn[1][id]=presence&dvIn[1][cfg][vis]=true&dvIn[1][cfg][clr]=%23FFEA00&dvIn[1][cfg][colorRamp]=yellow&dvIn[2][id]=vms&dvIn[2][cfg][vis]=false&dvIn[3][id]=ais&dvIn[3][cfg][vis]=false&dvIn[4][id]=user-polygons-1756466528933-1756466528933&dvIn[4][cfg][clr]=%23F95E5E&dvIn[4][dvId]=default-context-layer&dvIn[4][dsC][0][dsId]=public-palma-bay-1747920527235&dvIn[4][dsC][0][ept]=context-tiles&lTD=&fTD=&bDV&start=2025-07-01T00%3A00%3A00.000Z&end=2025-08-26T00%3A00%3A00.000Z&vDi=public-global-vessel-identity%3Av3.0&vIs=registryInfo&vAm=type&vS=activity&vA=eez&vR=encounters&includeRelatedIdentities=true&sbO=true&rAG=evolution"></a></figcaption>
+   </figure>
+
+    AIS data aggregated by the [Global Fishing Watch](https://globalfishingwatch.org/map/report/palma_bay_vessel_activity-user-public?longitude=40.5784225&latitude=-10.75874886&zoom=11.86219571&dvIn[0][id]=basemap&dvIn[0][cfg][basemap]=satellite&dvIn[1][id]=presence&dvIn[1][cfg][vis]=true&dvIn[1][cfg][clr]=%23FFEA00&dvIn[1][cfg][colorRamp]=yellow&dvIn[2][id]=vms&dvIn[2][cfg][vis]=false&dvIn[3][id]=ais&dvIn[3][cfg][vis]=false&dvIn[4][id]=user-polygons-1756466528933-1756466528933&dvIn[4][cfg][clr]=%23F95E5E&dvIn[4][dvId]=default-context-layer&dvIn[4][dsC][0][dsId]=public-palma-bay-1747920527235&dvIn[4][dsC][0][ept]=context-tiles&lTD=&fTD=&bDV&start=2025-07-01T00%3A00%3A00.000Z&end=2025-08-26T00%3A00%3A00.000Z&vDi=public-global-vessel-identity%3Av3.0&vIs=registryInfo&vAm=type&vS=activity&vA=eez&vR=encounters&includeRelatedIdentities=true&sbO=true&rAG=evolution) project shows an increase in vessel activity in Palma Bay from mid-August. Vessels involved — visible via the GFW web interface — include the Gombessa (IMO 8733897, a passenger vessel) and the Topaz Tobol (IMO 9812224, a heavy load carrier).  
   </script>
 </notebook>
