@@ -14,7 +14,7 @@
 
       <figure style="max-width:100%">
         <div id="flight-map" style="height: 500px; width: 100%; margin-bottom: 10px;"></div>
-        <figcaption>Flight tracks for V5-WEN (Embraer ERJ 145) from 1 May to 29 August 2025, showing 44 flights between Maputo, Pemba, and the Afungi airstrip. Lines are colored by altitude: red (low) to blue (high). Source: <a href="https://globe.adsbexchange.com/?icao=20104f">ADS-B Exchange</a>.</figcaption>
+        <figcaption>Flight tracks for V5-WEN (Embraer ERJ 145) from 1 May to 29 August 2025, showing 44 flights between Maputo, Pemba, and the Afungi airstrip. Source: <a href="https://globe.adsbexchange.com/?icao=20104f">ADS-B Exchange</a>.</figcaption>
       </figure>
 
     On 1 May 2025, an Embraer ERJ 145 passenger jet with the registration V5-WEN flew from the Mozambican capital, Maputo, to the port of Pemba. Less than an hour later, the jet — which carries [about 50 people](https://en.wikipedia.org/wiki/Embraer_ERJ_family) at a time — took off and headed north towards the Afungi airstrip.
@@ -42,17 +42,49 @@ According to Everett's [website](https://www.everettaviation.com/), the company 
      };
      document.head.appendChild(script);
 
-     function initializeFlightMap() {
-       // Set Mapbox access token
-       window.mapboxgl.accessToken = 'pk.eyJ1IjoiZGF0YS1kZXNrIiwiYSI6ImNsYmNlcjl4bjBjd3UzcG55dHluaHYzbmQifQ.2wVVsUzF2BHBJ9ywCxCqWw';
+      function initializeFlightMap() {
+        // Set Mapbox access token
+        window.mapboxgl.accessToken = 'pk.eyJ1IjoiZGF0YS1kZXNrIiwiYSI6ImNsYmNlcjl4bjBjd3UzcG55dHluaHYzbmQifQ.2wVVsUzF2BHBJ9ywCxCqWw';
 
-       // Initialize map with dark theme
-       const map = new window.mapboxgl.Map({
-         container: 'flight-map',
-         style: 'mapbox://styles/mapbox/dark-v11',
-         center: [40.5, -11.0],
-         zoom: 8
-       });
+         // Initialize map with dark theme and terrain, starting at ground level then rising up
+         const map = new window.mapboxgl.Map({
+           container: 'flight-map',
+           style: 'mapbox://styles/mapbox/dark-v11',
+           center: [40.4, -11.6], // Center between Pemba and Afungi
+           zoom: 8.2,  // Adjusted zoom level
+           pitch: 0, // Start at ground level
+           bearing: 225, // Looking from northeast to southwest
+           attributionControl: false // Remove Mapbox attribution and "improve this map" labels
+         });
+
+       // Add terrain source for 3D elevation
+       map.on('load', () => {
+         map.addSource('terrain', {
+           type: 'raster-dem',
+           url: 'mapbox://mapbox.terrain-rgb'
+         });
+
+         // Add terrain layer
+         map.addLayer({
+           id: 'terrain',
+           type: 'hillshade',
+           source: 'terrain',
+           layout: { visibility: 'visible' },
+           paint: { 'hillshade-shadow-color': '#000000' }
+         });
+
+          // Enable terrain
+          map.setTerrain({
+            source: 'terrain',
+            exaggeration: 1.5
+          });
+
+          // Transition pitch from 0 to 70 degrees (rising up)
+          map.easeTo({
+            pitch: 70,
+            duration: 2000
+          });
+        });
 
        // Load all available flight track data files (44 total flights)
        const flightFiles = [
@@ -89,56 +121,89 @@ According to Everett's [website](https://www.everettaviation.com/), the company 
              const layerId = `flight-path-${date}`;
 
              if (!map.getSource(sourceId)) {
-               // Create GeoJSON with altitude data for gradient coloring
-               const features = [];
+               // Find altitude range for this flight first (skip None/null values)
                let minAlt = Infinity;
                let maxAlt = -Infinity;
 
-               // Find altitude range for this flight
                data.trace.forEach(point => {
                  const alt = point[3]; // altitude is at index 3
-                 if (alt < minAlt) minAlt = alt;
-                 if (alt > maxAlt) maxAlt = alt;
+                 if (alt !== null && alt !== undefined && typeof alt === 'number') {
+                   if (alt < minAlt) minAlt = alt;
+                   if (alt > maxAlt) maxAlt = alt;
+                 }
                });
 
-               // Create line segments colored by altitude
-               for (let i = 0; i < coordinates.length - 1; i++) {
-                 const startCoord = coordinates[i];
-                 const endCoord = coordinates[i + 1];
-                 const startAlt = data.trace[i][3];
-                 const endAlt = data.trace[i + 1][3];
+               console.log(`Flight altitude range: ${minAlt} - ${maxAlt} ft`);
+
+               // Create GeoJSON with altitude data for gradient coloring
+               const features = [];
+
+               // Create 3D extruded polygons from ALL line segments (use every data point)
+               for (let i = 0; i < data.trace.length - 1; i++) {
+                 const startPoint = data.trace[i];
+                 const endPoint = data.trace[i + 1];
+
+                 // Extract coordinates: [timestamp, lat, lng, alt, ...]
+                 const startCoord = [startPoint[2], startPoint[1]]; // [lng, lat]
+                 const endCoord = [endPoint[2], endPoint[1]];     // [lng, lat]
+                 const startAlt = startPoint[3];
+                 const endAlt = endPoint[3];
+
+                 // Skip segments with invalid altitude data
+                 if (startAlt === null || startAlt === undefined ||
+                     endAlt === null || endAlt === undefined ||
+                     typeof startAlt !== 'number' || typeof endAlt !== 'number') {
+                   continue;
+                 }
+
+                 const avgAlt = (startAlt + endAlt) / 2;
 
                  // Create color based on altitude (low = blue, high = red)
-                 const avgAlt = (startAlt + endAlt) / 2;
                  const altRatio = (avgAlt - minAlt) / (maxAlt - minAlt || 1);
-
-                 // Color gradient: red (low) -> yellow -> cyan -> blue (high)
                  let color;
                  if (altRatio < 0.33) {
-                   // Red to yellow
                    const ratio = altRatio / 0.33;
                    color = `rgb(${Math.round(255)}, ${Math.round(0 + ratio * 255)}, ${Math.round(0)})`;
                  } else if (altRatio < 0.66) {
-                   // Yellow to cyan
                    const ratio = (altRatio - 0.33) / 0.33;
                    color = `rgb(${Math.round(255 - ratio * 255)}, ${Math.round(255)}, ${Math.round(0 + ratio * 255)})`;
                  } else {
-                   // Cyan to blue
                    const ratio = (altRatio - 0.66) / 0.34;
                    color = `rgb(${Math.round(0)}, ${Math.round(255 - ratio * 155)}, ${Math.round(255)})`;
                  }
 
-                 features.push({
-                   type: 'Feature',
-                   properties: {
-                     altitude: avgAlt,
-                     color: color
-                   },
-                   geometry: {
-                     type: 'LineString',
-                     coordinates: [startCoord, endCoord]
-                   }
-                 });
+                 // Create a thin but tall polygon along the flight path for 3D extrusion
+                 const width = 0.0008; // Thin but visible width
+
+                 // Calculate perpendicular vector for polygon width
+                 const dx = endCoord[0] - startCoord[0];
+                 const dy = endCoord[1] - startCoord[1];
+                 const length = Math.sqrt(dx * dx + dy * dy);
+
+                 if (length > 0) {
+                   const nx = -dy / length * width;
+                   const ny = dx / length * width;
+
+                   features.push({
+                     type: 'Feature',
+                     properties: {
+                       altitude: avgAlt,
+                       color: color,
+                       extrusion_height: Math.max(150, avgAlt * 0.3), // Reasonable altitude scaling
+                     extrusion_base: Math.max(0, (avgAlt * 0.3) - 180) // Slightly less deep profile (180-unit thickness)
+                     },
+                     geometry: {
+                       type: 'Polygon',
+                       coordinates: [[
+                         [startCoord[0] - nx, startCoord[1] - ny],
+                         [startCoord[0] + nx, startCoord[1] + ny],
+                         [endCoord[0] + nx, endCoord[1] + ny],
+                         [endCoord[0] - nx, endCoord[1] - ny],
+                         [startCoord[0] - nx, startCoord[1] - ny]
+                       ]]
+                     }
+                   });
+                 }
                }
 
                map.addSource(sourceId, {
@@ -149,19 +214,16 @@ According to Everett's [website](https://www.everettaviation.com/), the company 
                  }
                });
 
-               // Add the altitude-colored line layer
+               // Add 3D extruded fill layer for true altitude visualization
                map.addLayer({
                  id: layerId,
-                 type: 'line',
+                 type: 'fill-extrusion',
                  source: sourceId,
-                 layout: {
-                   'line-join': 'round',
-                   'line-cap': 'round'
-                 },
                  paint: {
-                   'line-color': ['get', 'color'],
-                   'line-width': 2,
-                   'line-opacity': 0.9
+                   'fill-extrusion-color': ['get', 'color'],
+                   'fill-extrusion-height': ['get', 'extrusion_height'],
+                   'fill-extrusion-base': ['get', 'extrusion_base'],
+                   'fill-extrusion-opacity': 0.9
                  }
                });
 
@@ -195,13 +257,9 @@ According to Everett's [website](https://www.everettaviation.com/), the company 
              }
            });
 
-            // Check if bounds are valid by checking if they have been extended
-            try {
-              map.fitBounds(bounds, { padding: 50 });
-              console.log('Map bounds fitted to show all flight tracks');
-            } catch (error) {
-              console.log('Invalid bounds, keeping default map view:', error.message);
-            }
+             // Keep the current view showing both Pemba and Afungi
+             // The 3D extruded paths will be visible in the current view
+             console.log('Keeping view showing both Pemba and Afungi');
          } else {
            console.log('No flight coordinates found, keeping default map view');
          }
