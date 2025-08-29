@@ -297,7 +297,28 @@ According to Everett's [website](https://www.everettaviation.com/), the company 
        });
       }
     </script>
-    <script id="satellite-imagery" type="text/markdown">
+    <script id="flight-summary-data" type="module">
+    const flightSummary = await FileAttachment("./data/flight-summary.csv").csv({typed: true});
+    
+    // Format time from ISO timestamp
+    const formatTime = (timestamp) => {
+      const d = new Date(timestamp);
+      return d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+    };
+    
+    display(Inputs.table(flightSummary.map(f => ({
+      Date: f.flight_date,
+      "Flight": f.flight_num,
+      "Takeoff Time": formatTime(f.takeoff_timestamp),
+      "Landing Time": formatTime(f.landing_timestamp),
+      Route: `${f.takeoff_location} → ${f.landing_location}`,
+      "Duration (min)": f.flight_duration_minutes
+    }))));
+    
+    // Make data available globally for map visualization
+    window.flightSummaryData = flightSummary;
+  </script> 
+  <script id="satellite-imagery" type="text/markdown">
     ## Construction work
 
     <figure style="max-width:100%">
@@ -316,5 +337,9 @@ According to Everett's [website](https://www.everettaviation.com/), the company 
    </figure>
 
     AIS data aggregated by the [Global Fishing Watch](https://globalfishingwatch.org/map/report/palma_bay_vessel_activity-user-public?longitude=40.5784225&latitude=-10.75874886&zoom=11.86219571&dvIn[0][id]=basemap&dvIn[0][cfg][basemap]=satellite&dvIn[1][id]=presence&dvIn[1][cfg][vis]=true&dvIn[1][cfg][clr]=%23FFEA00&dvIn[1][cfg][colorRamp]=yellow&dvIn[2][id]=vms&dvIn[2][cfg][vis]=false&dvIn[3][id]=ais&dvIn[3][cfg][vis]=false&dvIn[4][id]=user-polygons-1756466528933-1756466528933&dvIn[4][cfg][clr]=%23F95E5E&dvIn[4][dvId]=default-context-layer&dvIn[4][dsC][0][dsId]=public-palma-bay-1747920527235&dvIn[4][dsC][0][ept]=context-tiles&lTD=&fTD=&bDV&start=2025-07-01T00%3A00%3A00.000Z&end=2025-08-26T00%3A00%3A00.000Z&vDi=public-global-vessel-identity%3Av3.0&vIs=registryInfo&vAm=type&vS=activity&vA=eez&vR=encounters&includeRelatedIdentities=true&sbO=true&rAG=evolution) project shows an increase in vessel activity in Palma Bay from mid-August. Vessels involved — visible via the GFW web interface — include the Gombessa (IMO 8733897, a passenger vessel) and the Topaz Tobol (IMO 9812224, a heavy load carrier).  
+  </script>
+  <script id="database-setup" type="module">
+    // Should be able to remove this in future versions of Notebook Kit
+    const db = DuckDBClient.of();
   </script>
 </notebook>
