@@ -14,7 +14,7 @@
 
       <figure style="max-width:100%">
         <div id="flight-map" style="height: 500px; width: 100%; margin-bottom: 10px;"></div>
-        <figcaption>Flight tracks for V5-WEN (Embraer ERJ 145) from 1 May to 29 August 2025, showing 44 flights between Maputo, Pemba, and the Afungi airstrip. Source: <a href="https://globe.adsbexchange.com/?icao=20104f">ADS-B Exchange</a>.</figcaption>
+        <figcaption>Flight tracks for V5-WEN (Embraer ERJ 145) from 1 May to 29 August 2025, showing flights between Maputo, Pemba, and the Afungi airstrip. Source: <a href="https://globe.adsbexchange.com/?icao=20104f">ADS-B Exchange</a>.</figcaption>
       </figure>
 
     On 1 May 2025, an Embraer ERJ 145 passenger jet with the registration V5-WEN flew from the Mozambican capital, Maputo, to the port of Pemba. Less than an hour later, the jet — which carries [about 50 people](https://en.wikipedia.org/wiki/Embraer_ERJ_family) at a time — took off and headed north towards the Afungi airstrip.
@@ -306,14 +306,14 @@ According to Everett's [website](https://www.everettaviation.com/), the company 
       return d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
     };
     
-    display(Inputs.table(flightSummary.map(f => ({
+    /*display(Inputs.table(flightSummary.map(f => ({
       Date: f.flight_date,
       "Flight": f.flight_num,
       "Takeoff Time": formatTime(f.takeoff_timestamp),
       "Landing Time": formatTime(f.landing_timestamp),
       Route: `${f.takeoff_location} → ${f.landing_location}`,
       "Duration (min)": f.flight_duration_minutes
-    }))));
+    }))));*/
     
     // Make data available globally for map visualization
     window.flightSummaryData = flightSummary;
