@@ -8,7 +8,7 @@
   },
    "scripts": {
      "docs:preview": "notebooks preview --root docs --template template.html",
-     "docs:build": "npm run fetch-data && notebooks build --root docs --template template.html -- docs/*.html",
+     "docs:build": "npm run fetch-data && notebooks build --root docs --template template.html -- docs/*.html && cp -r docs/data docs/.observable/dist/",
      "fetch-data": "./scripts/fetch-flight-data.sh"
    }
 }

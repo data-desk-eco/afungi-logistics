@@ -103,7 +103,9 @@ According to Everett's [website](https://www.everettaviation.com/), the company 
 
        // Function to load a single flight track
        function loadFlightTrack(date) {
-          return fetch('./data/flight-track-' + date + '.json')
+          // Use absolute path from repo root for GitHub Pages
+         const basePath = window.location.pathname.includes('afungi-logistics') ? '/afungi-logistics' : '';
+         return fetch(basePath + '/data/flight-track-' + date + '.json')
           .then(response => {
             if (!response.ok) {
               console.log('No data for ' + date);
@@ -298,7 +300,9 @@ According to Everett's [website](https://www.everettaviation.com/), the company 
       }
     </script>
     <script id="flight-summary-data" type="module">
-    const flightSummary = await FileAttachment("./data/flight-summary.csv").csv({typed: true});
+    // Use absolute path from repo root for GitHub Pages
+    const basePath = window.location.pathname.includes('afungi-logistics') ? '/afungi-logistics' : '';
+    const flightSummary = await FileAttachment(basePath + "/data/flight-summary.csv").csv({typed: true});
     
     // Format time from ISO timestamp
     const formatTime = (timestamp) => {
