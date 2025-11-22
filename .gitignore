@@ -1,2 +1,4 @@
-docs/.observable/dist
+docs/.observable
 node_modules
+data/flight-track-*.json
+data/.flight_cache*

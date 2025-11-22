@@ -33,7 +33,7 @@
 
     While the [available location data](https://globe.adsbexchange.com/?icao=20104f&lat=-11.533&lon=40.397&zoom=9.8&showTrace=2025-05-01&leg=2&trackLabels) doesn't show the plane landing, its course, altitude and subsequent movements make clear that it landed at Afungi. The lack of data at the project site may be due to limited coverage of remote areas by the [ADS-B Exchange](https://globe.adsbexchange.com/) project, or to deliberate disabling of the plane's ADS-B transponder.
     
-    Since 1 May, the same aircraft appears to have made dozens of flights between Maputo, Pemba and Afungi, most recently on [29 August](https://globe.adsbexchange.com/?icao=20104f&lat=-11.945&lon=40.210&zoom=8.6&showTrace=2025-08-29&leg=2&trackLabels). V5-WEN is owned by Fly Namibia and ordinarily operated by Westair Aviation, but was [leased to a different company](https://www.planespotters.net/airframe/embraer-erj-145-v5-wen-everett-aviation/3xwkl8), Everett Aviation, in  April 2025, suggesting that it may have been chartered specifically for Mozambique LNG project logistics.
+    Since 1 May, the same aircraft appears to have made dozens of flights between Maputo, Pemba and Afungi, most recently on [9 September](https://globe.adsbexchange.com/?icao=20104f&lat=-11.037&lon=40.419&zoom=7.0&showTrace=2025-09-09&trackLabels). V5-WEN is owned by Fly Namibia and ordinarily operated by Westair Aviation, but was [leased to a different company](https://www.planespotters.net/airframe/embraer-erj-145-v5-wen-everett-aviation/3xwkl8), Everett Aviation, in  April 2025, suggesting that it may have been chartered specifically for Mozambique LNG project logistics.
 
     According to Everett's [website](https://www.everettaviation.com/), the company provides "safe and solution oriented fixed & rotary wing aviation services, serving international clients from the energy sector and other government & commercial organizations with specialist aviation needs."
 
@@ -44,7 +44,16 @@
      <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
    </script>
 
-
+   <script id="flight-data" output="flightTracks" type="application/sql" database="../data/data.duckdb" hidden>
+     SELECT
+       flight_date,
+       lat,
+       lng,
+       altitude_ft,
+       timestamp
+     FROM flight_tracks
+     ORDER BY flight_date, idx
+   </script>
 
    <script id="mapbox-js" type="module">
      // Load Mapbox GL JS
@@ -97,244 +106,127 @@
             pitch: 70,
             duration: 2000
           });
+
+        // Group flight tracks by date
+        const flightsByDate = {};
+        flightTracks.forEach(point => {
+          if (!flightsByDate[point.flight_date]) {
+            flightsByDate[point.flight_date] = [];
+          }
+          flightsByDate[point.flight_date].push(point);
         });
 
-       // Load all available flight track data files (44 total flights)
-       const flightFiles = [
-         '2025-05-01', '2025-05-07', '2025-05-09', '2025-05-13', '2025-05-15', '2025-05-21', '2025-05-23',
-         '2025-05-27', '2025-05-29', '2025-05-31', '2025-06-01', '2025-06-03', '2025-06-05', '2025-06-09',
-         '2025-06-11', '2025-06-13', '2025-06-17', '2025-06-19', '2025-06-23', '2025-06-25', '2025-06-27',
-         '2025-07-01', '2025-07-03', '2025-07-07', '2025-07-09', '2025-07-11', '2025-07-15', '2025-07-17',
-         '2025-07-21', '2025-07-23', '2025-07-25', '2025-07-31', '2025-08-01', '2025-08-05', '2025-08-07',
-         '2025-08-11', '2025-08-13', '2025-08-15', '2025-08-19', '2025-08-20', '2025-08-21', '2025-08-25',
-         '2025-08-27', '2025-08-29'
-       ];
+        let allCoordinates = [];
 
-       let allCoordinates = [];
-       let loadedTracks = 0;
-       const totalTracks = flightFiles.length;
+        // Process each flight date
+        Object.entries(flightsByDate).forEach(([date, points]) => {
+          const coordinates = points.map(p => [p.lng, p.lat]);
+          allCoordinates.push(...coordinates);
 
-       // Function to load a single flight track
-       function loadFlightTrack(date) {
-          // Use absolute path from repo root for GitHub Pages
-         const basePath = window.location.pathname.includes('afungi-logistics') ? '/afungi-logistics' : '';
-         return fetch(basePath + '/data/flight-track-' + date + '.json')
-          .then(response => {
-            if (!response.ok) {
-              console.log('No data for ' + date);
-              return null;
+          // Find altitude range for this flight
+          let minAlt = Math.min(...points.map(p => p.altitude_ft).filter(a => a > 0));
+          let maxAlt = Math.max(...points.map(p => p.altitude_ft).filter(a => a > 0));
+
+          console.log(`Flight ${date} altitude range: ${minAlt} - ${maxAlt} ft`);
+
+          // Create GeoJSON with altitude data for gradient coloring
+          const features = [];
+
+          // Create 3D extruded polygons from line segments
+          for (let i = 0; i < points.length - 1; i++) {
+            const startPoint = points[i];
+            const endPoint = points[i + 1];
+
+            const startCoord = [startPoint.lng, startPoint.lat];
+            const endCoord = [endPoint.lng, endPoint.lat];
+            const startAlt = startPoint.altitude_ft;
+            const endAlt = endPoint.altitude_ft;
+
+            // Skip segments with invalid altitude
+            if (!startAlt || !endAlt || startAlt < 0 || endAlt < 0) continue;
+
+            const avgAlt = (startAlt + endAlt) / 2;
+
+            // Create color based on altitude (low = red, high = cyan)
+            const altRatio = (avgAlt - minAlt) / (maxAlt - minAlt || 1);
+            let color;
+            if (altRatio < 0.33) {
+              const ratio = altRatio / 0.33;
+              color = `rgb(${Math.round(255)}, ${Math.round(0 + ratio * 255)}, ${Math.round(0)})`;
+            } else if (altRatio < 0.66) {
+              const ratio = (altRatio - 0.33) / 0.33;
+              color = `rgb(${Math.round(255 - ratio * 255)}, ${Math.round(255)}, ${Math.round(0 + ratio * 255)})`;
+            } else {
+              const ratio = (altRatio - 0.66) / 0.34;
+              color = `rgb(${Math.round(0)}, ${Math.round(255 - ratio * 155)}, ${Math.round(255)})`;
             }
-           return response.json();
-         })
-         .then(data => {
-           if (data && data.trace && data.trace.length > 0) {
-             const coordinates = data.trace.map(point => [point[2], point[1]]);
-             allCoordinates.push(...coordinates);
 
-             // Create altitude-based gradient coloring
-             const sourceId = `flight-path-${date}`;
-             const layerId = `flight-path-${date}`;
+            // Create polygon for 3D extrusion
+            const width = 0.0008;
+            const dx = endCoord[0] - startCoord[0];
+            const dy = endCoord[1] - startCoord[1];
+            const length = Math.sqrt(dx * dx + dy * dy);
 
-             if (!map.getSource(sourceId)) {
-               // Find altitude range for this flight first (skip None/null values)
-               let minAlt = Infinity;
-               let maxAlt = -Infinity;
+            if (length > 0) {
+              const nx = -dy / length * width;
+              const ny = dx / length * width;
 
-               data.trace.forEach(point => {
-                 const alt = point[3]; // altitude is at index 3
-                 if (alt !== null && alt !== undefined && typeof alt === 'number') {
-                   if (alt < minAlt) minAlt = alt;
-                   if (alt > maxAlt) maxAlt = alt;
-                 }
-               });
-
-               console.log(`Flight altitude range: ${minAlt} - ${maxAlt} ft`);
-
-               // Create GeoJSON with altitude data for gradient coloring
-               const features = [];
-
-               // Create 3D extruded polygons from ALL line segments (use every data point)
-               for (let i = 0; i < data.trace.length - 1; i++) {
-                 const startPoint = data.trace[i];
-                 const endPoint = data.trace[i + 1];
-
-                 // Extract coordinates: [timestamp, lat, lng, alt, ...]
-                 const startCoord = [startPoint[2], startPoint[1]]; // [lng, lat]
-                 const endCoord = [endPoint[2], endPoint[1]];     // [lng, lat]
-                 const startAlt = startPoint[3];
-                 const endAlt = endPoint[3];
-
-                 // Skip segments with invalid altitude data
-                 if (startAlt === null || startAlt === undefined ||
-                     endAlt === null || endAlt === undefined ||
-                     typeof startAlt !== 'number' || typeof endAlt !== 'number') {
-                   continue;
-                 }
-
-                 const avgAlt = (startAlt + endAlt) / 2;
-
-                 // Create color based on altitude (low = blue, high = red)
-                 const altRatio = (avgAlt - minAlt) / (maxAlt - minAlt || 1);
-                 let color;
-                 if (altRatio < 0.33) {
-                   const ratio = altRatio / 0.33;
-                   color = `rgb(${Math.round(255)}, ${Math.round(0 + ratio * 255)}, ${Math.round(0)})`;
-                 } else if (altRatio < 0.66) {
-                   const ratio = (altRatio - 0.33) / 0.33;
-                   color = `rgb(${Math.round(255 - ratio * 255)}, ${Math.round(255)}, ${Math.round(0 + ratio * 255)})`;
-                 } else {
-                   const ratio = (altRatio - 0.66) / 0.34;
-                   color = `rgb(${Math.round(0)}, ${Math.round(255 - ratio * 155)}, ${Math.round(255)})`;
-                 }
-
-                 // Create a thin but tall polygon along the flight path for 3D extrusion
-                 const width = 0.0008; // Thin but visible width
-
-                 // Calculate perpendicular vector for polygon width
-                 const dx = endCoord[0] - startCoord[0];
-                 const dy = endCoord[1] - startCoord[1];
-                 const length = Math.sqrt(dx * dx + dy * dy);
-
-                 if (length > 0) {
-                   const nx = -dy / length * width;
-                   const ny = dx / length * width;
-
-                   features.push({
-                     type: 'Feature',
-                     properties: {
-                       altitude: avgAlt,
-                       color: color,
-                       extrusion_height: Math.max(150, avgAlt * 0.3), // Reasonable altitude scaling
-                     extrusion_base: Math.max(0, (avgAlt * 0.3) - 180) // Slightly less deep profile (180-unit thickness)
-                     },
-                     geometry: {
-                       type: 'Polygon',
-                       coordinates: [[
-                         [startCoord[0] - nx, startCoord[1] - ny],
-                         [startCoord[0] + nx, startCoord[1] + ny],
-                         [endCoord[0] + nx, endCoord[1] + ny],
-                         [endCoord[0] - nx, endCoord[1] - ny],
-                         [startCoord[0] - nx, startCoord[1] - ny]
-                       ]]
-                     }
-                   });
-                 }
-               }
-
-               map.addSource(sourceId, {
-                 type: 'geojson',
-                 data: {
-                   type: 'FeatureCollection',
-                   features: features
-                 }
-               });
-
-               // Add 3D extruded fill layer for true altitude visualization
-               map.addLayer({
-                 id: layerId,
-                 type: 'fill-extrusion',
-                 source: sourceId,
-                 paint: {
-                   'fill-extrusion-color': ['get', 'color'],
-                   'fill-extrusion-height': ['get', 'extrusion_height'],
-                   'fill-extrusion-base': ['get', 'extrusion_base'],
-                   'fill-extrusion-opacity': 0.9
-                 }
-               });
-
-
-
-               console.log('Added altitude-colored flight track for ' + date + ' (alt range: ' + minAlt + ' - ' + maxAlt + ' ft)');
-
-                console.log('Added flight track for ' + date + ' with ' + coordinates.length + ' points');
-             }
-           }
-           return data;
-         })
-          .catch(error => {
-            console.log('Error loading ' + date + ':', error);
-            return null;
-          });
-       }
-
-       // Note: finalizeMap is now called after all tracks are loaded via Promise.all
-
-       // Function to finalize map setup
-        function finalizeMap() {
-          console.log('Finalizing map with ' + allCoordinates.length + ' total coordinate points');
-
-         if (allCoordinates.length > 0) {
-           // Fit map to show all flight paths
-           const bounds = new window.mapboxgl.LngLatBounds();
-           allCoordinates.forEach(coord => {
-             if (coord && coord.length === 2 && !isNaN(coord[0]) && !isNaN(coord[1])) {
-               bounds.extend(coord);
-             }
-           });
-
-             // Keep the current view showing both Pemba and Afungi
-             // The 3D extruded paths will be visible in the current view
-             console.log('Keeping view showing both Pemba and Afungi');
-         } else {
-           console.log('No flight coordinates found, keeping default map view');
-         }
-        }
-
-       // Wait for map to load, then load all flight tracks
-       map.on('load', () => {
-         console.log('Map loaded, starting flight track loading...');
-
-         // Load all flight tracks in parallel
-         const loadPromises = flightFiles.map(date => loadFlightTrack(date));
-
-          Promise.all(loadPromises).then(results => {
-            const successfulLoads = results.filter(r => r !== null).length;
-            console.log('Loaded ' + successfulLoads + ' flight tracks out of ' + flightFiles.length + ' total files');
-
-           if (successfulLoads === 0) {
-             console.log('No flight data available. This might be because:');
-             console.log('1. The data is from the future (2025) and not yet available');
-             console.log('2. The aircraft did not fly on the specified dates');
-             console.log('3. API access restrictions or data format changes');
-             console.log('4. The flight data might be available through different sources');
-
-              // Show a helpful message on the map
-              map.on('load', () => {
-                const mapContainer = document.getElementById('flight-map');
-                if (mapContainer) {
-                  mapContainer.innerHTML = '<div style="text-align: center; padding: 50px; color: #666; background: #1a1a1a; height: 100%; display: flex; flex-direction: column; justify-content: center;"><h3 style="color: #fff; margin-bottom: 20px;">Flight Track Data Unavailable</h3><p style="margin-bottom: 15px;">No flight data could be loaded for the specified dates.</p><p style="font-size: 14px; opacity: 0.8;">This may be because the data is from 2025 and not yet available, or the aircraft didn\'t fly on those dates.</p><p style="font-size: 14px; opacity: 0.8;">The visualization will update automatically when data becomes available.</p></div>';
+              features.push({
+                type: 'Feature',
+                properties: {
+                  altitude: avgAlt,
+                  color: color,
+                  extrusion_height: Math.max(150, avgAlt * 0.3),
+                  extrusion_base: Math.max(0, (avgAlt * 0.3) - 180)
+                },
+                geometry: {
+                  type: 'Polygon',
+                  coordinates: [[
+                    [startCoord[0] - nx, startCoord[1] - ny],
+                    [startCoord[0] + nx, startCoord[1] + ny],
+                    [endCoord[0] + nx, endCoord[1] + ny],
+                    [endCoord[0] - nx, endCoord[1] - ny],
+                    [startCoord[0] - nx, startCoord[1] - ny]
+                  ]]
                 }
-             });
-           } else {
-             finalizeMap();
-           }
-         });
-       });
-      }
+              });
+            }
+          }
+
+          // Add source and layer to map
+          const sourceId = `flight-path-${date}`;
+          const layerId = `flight-path-${date}`;
+
+          map.addSource(sourceId, {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: features
+            }
+          });
+
+          map.addLayer({
+            id: layerId,
+            type: 'fill-extrusion',
+            source: sourceId,
+            paint: {
+              'fill-extrusion-color': ['get', 'color'],
+              'fill-extrusion-height': ['get', 'extrusion_height'],
+              'fill-extrusion-base': ['get', 'extrusion_base'],
+              'fill-extrusion-opacity': 0.9
+            }
+          });
+
+          console.log(`Added flight track for ${date} with ${points.length} points`);
+        });
+
+        console.log('Finalizing map with ' + allCoordinates.length + ' total coordinate points');
+      });
+     }
     </script>
-    <script id="flight-summary-data" type="module">
-    // Use absolute path from repo root for GitHub Pages
-    const basePath = window.location.pathname.includes('afungi-logistics') ? '/afungi-logistics' : '';
-    const flightSummary = await FileAttachment(basePath + "/data/flight-summary.csv").csv({typed: true});
-    
-    // Format time from ISO timestamp
-    const formatTime = (timestamp) => {
-      const d = new Date(timestamp);
-      return d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
-    };
-    
-    /*display(Inputs.table(flightSummary.map(f => ({
-      Date: f.flight_date,
-      "Flight": f.flight_num,
-      "Takeoff Time": formatTime(f.takeoff_timestamp),
-      "Landing Time": formatTime(f.landing_timestamp),
-      Route: `${f.takeoff_location} → ${f.landing_location}`,
-      "Duration (min)": f.flight_duration_minutes
-    }))));*/
-    
-    // Make data available globally for map visualization
-    window.flightSummaryData = flightSummary;
-  </script> 
+    <script id="flight-summary-query" output="flightSummary" type="application/sql" database="../data/data.duckdb" hidden>
+      SELECT * FROM flight_summary ORDER BY flight_date, flight_num
+    </script> 
   <script id="satellite-imagery" type="text/markdown">
     ## Construction work
 
