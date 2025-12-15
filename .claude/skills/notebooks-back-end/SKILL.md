@@ -110,7 +110,7 @@ jobs:
 
 The reusable workflow handles:
 1. Checkout and setup (Node, Yarn, DuckDB)
-2. Download shared `template.html`, `CLAUDE.md`, and `.claude/skills/`
+2. Download shared `template.html` and `.claude/` (includes skills and shared CLAUDE.md)
 3. Run `make data`
 4. Commit any changes
 5. Run `make build`
@@ -141,7 +141,8 @@ jobs:
 
 These files download from the `.github` repo on each deploy:
 - `template.html` - HTML wrapper
-- `CLAUDE.md` - Project instructions
-- `.claude/skills/` - Claude Code skills
+- `.claude/` - Claude Code skills and shared instructions (`.claude/CLAUDE.md`)
 
 Don't edit these locally - changes will be overwritten.
+
+**Project-specific instructions:** Create a root `CLAUDE.md` in your notebook repo for project-specific context. This file won't be overwritten and should be committed.
