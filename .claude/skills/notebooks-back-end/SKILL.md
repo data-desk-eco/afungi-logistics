@@ -1,6 +1,6 @@
 ---
 name: notebooks-back-end
-description: Use when building, deploying, or setting up notebooks. Covers Makefile targets (make build, make data, make etl), GitHub Actions workflows, CI/CD, and creating new notebook repositories.
+description: Use when working with DuckDB databases, Makefiles, or building/deploying notebooks. Triggers on DuckDB queries, database creation, Makefile editing, make targets (build, data, etl), GitHub Actions workflows, CI/CD, and creating new notebook repositories.
 ---
 
 # Notebook build and deployment
