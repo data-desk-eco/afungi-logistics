@@ -43,6 +43,7 @@ Data Desk notebooks use Observable Notebook Kit 2.0 - standalone HTML pages with
 - Use `display()` to render output (don't rely on return values)
 - Variables defined in one cell available to all others
 - Use **sentence case** for all titles, headings, and chart titles (e.g., "Outages by country" not "Outages By Country")
+- **Keep the "last updated" date element** - this is auto-populated from git and should not be removed
 
 ## Loading data
 
