@@ -2,3 +2,8 @@ docs/.observable
 node_modules
 data/flight-track-*.json
 data/.flight_cache*
+
+# agent exhaust — never commit
+*.log
+.playwright-mcp/
+.claude/multi_agent.py
